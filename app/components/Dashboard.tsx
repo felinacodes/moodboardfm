@@ -11,8 +11,23 @@ type BoardItem = {
   width: number;
   height: number;
   rotation: number;
+  font?: string;
   color?: string;
+  fontSize?: number;
 };
+
+const fonts = [
+  { name: "Playfair Display", value: "var(--font-playfair)" },
+  { name: "Cormorant Garamond", value: "var(--font-cormorant)" },
+  { name: "Space Grotesk", value: "var(--font-space-grotesk)" },
+  { name: "Bebas Neue", value: "var(--font-bebas)" },
+  { name: "Pacifico", value: "var(--font-pacifico)" },
+  { name: "DM Serif Display", value: "var(--font-dm-serif)" },
+  { name: "Permanent Marker", value: "var(--font-permanent-marker)" },
+  { name: "Lora", value: "var(--font-lora)" },
+  { name: "Geist", value: "var(--font-geist)" },
+  { name: "Geist Mono", value: "var(--font-geist-mono)" },
+];
 
 const initialItems: BoardItem[] = [
   {
@@ -24,6 +39,9 @@ const initialItems: BoardItem[] = [
     width: 220,
     height: 65,
     rotation: -5,
+    color: "#2346d1",
+    font: "var(--font-permanent-marker)",
+    fontSize: 24,
   },
   {
     id: 2,
@@ -55,13 +73,18 @@ const initialItems: BoardItem[] = [
     width: 240,
     height: 60,
     rotation: -3,
+    color: "#e3a5e1",
+    font: "var(--font-pacifico)",
+    fontSize: 24,
   },
 ];
 
 export default function Dashboard() {
   const [items, setItems] = useState<BoardItem[]>(initialItems);
   const [selected, setSelected] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState<number | null>(null);
   const [nextId, setNextId] = useState(5);
+  const [showFontMenu, setShowFontMenu] = useState(false);
 
   function addItem(type: BoardItem["type"], content = "") {
     const item: BoardItem = {
@@ -73,10 +96,14 @@ export default function Dashboard() {
       width: type === "image" ? 180 : 200,
       height: type === "image" ? 180 : 65,
       rotation: 0,
+      color: "#18181b",
+      fontSize: 24,
     };
 
     setItems((prev) => [...prev, item]);
     setSelected(item.id);
+    setIsEditing(null);
+    setShowFontMenu(false);
     setNextId((prev) => prev + 1);
   }
 
@@ -89,13 +116,26 @@ export default function Dashboard() {
   function deleteSelected() {
     setItems((prev) => prev.filter((item) => item.id !== selected));
     setSelected(null);
+    setIsEditing(null);
+    setShowFontMenu(false);
+  }
+
+  function changeFontSize(item: BoardItem, amount: number) {
+    const currentSize = item.fontSize ?? 24;
+    const newSize = Math.min(72, Math.max(10, currentSize + amount));
+
+    updateItem(item.id, {
+      fontSize: newSize,
+      height: Math.max(65, item.height * (newSize / currentSize)),
+    });
   }
 
   function handlePointerDown(
     e: React.PointerEvent<HTMLDivElement>,
     item: BoardItem,
   ) {
-    if ((e.target as HTMLElement).closest("button, input")) return;
+    if ((e.target as HTMLElement).closest("button, input, label")) return;
+    if (isEditing === item.id) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -149,6 +189,14 @@ export default function Dashboard() {
 
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+  }
+
+  function updateTextSize(id: number, element: HTMLDivElement) {
+    const height = element.scrollHeight;
+
+    updateItem(id, {
+      height: Math.max(65, height),
+    });
   }
 
   return (
@@ -205,10 +253,24 @@ export default function Dashboard() {
           backgroundImage: "radial-gradient(#d4d4d8 1px, transparent 1px)",
           backgroundSize: "20px 20px",
         }}
-        onPointerDown={() => setSelected(null)}
+        onPointerDown={(e) => {
+          if (e.target === e.currentTarget) {
+            setSelected(null);
+            setIsEditing(null);
+            setShowFontMenu(false);
+          }
+        }}
       >
-        {/* Canvas area */}
-        <div className="relative min-h-[900px] min-w-[900px]">
+        <div
+          className="relative min-h-[900px] min-w-[900px]"
+          onPointerDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelected(null);
+              setIsEditing(null);
+              setShowFontMenu(false);
+            }
+          }}
+        >
           {items.map((item) => (
             <div
               key={item.id}
@@ -225,7 +287,7 @@ export default function Dashboard() {
                 height: item.height,
                 transform: `rotate(${item.rotation}deg)`,
                 zIndex: selected === item.id ? 100 : item.id,
-                cursor: "grab",
+                cursor: isEditing === item.id ? "text" : "grab",
                 touchAction: "none",
               }}
             >
@@ -238,58 +300,177 @@ export default function Dashboard() {
                 />
               )}
 
+              {item.type === "sticker" && (
+                <div className="pointer-events-none text-6xl">
+                  {item.content}
+                </div>
+              )}
+
               {item.type === "text" && (
                 <div
-                  contentEditable
+                  contentEditable={isEditing === item.id}
                   suppressContentEditableWarning
-                  onBlur={(e) =>
+                  style={{
+                    fontFamily: item.font || "inherit",
+                    color: item.color || "#18181b",
+                    fontSize: `${item.fontSize ?? 24}px`,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelected(item.id);
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setSelected(item.id);
+                    setIsEditing(item.id);
+                  }}
+                  onPointerDown={(e) => {
+                    if (isEditing === item.id) {
+                      e.stopPropagation();
+                    }
+                  }}
+                  onInput={(e) => {
+                    updateTextSize(item.id, e.currentTarget);
+                  }}
+                  onBlur={(e) => {
+                    const element = e.currentTarget;
+
                     updateItem(item.id, {
-                      content: e.currentTarget.innerText,
-                    })
-                  }
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="h-full w-full cursor-text p-2 text-center text-xl font-bold outline-none"
+                      content: element.innerText,
+                      height: Math.max(65, element.scrollHeight),
+                    });
+
+                    setIsEditing(null);
+                  }}
+                  className={`min-h-[65px] w-full whitespace-pre-wrap break-words p-2 text-center font-bold outline-none ${
+                    isEditing === item.id ? "cursor-text" : "cursor-grab"
+                  }`}
                 >
                   {item.content}
                 </div>
               )}
 
-              {item.type === "sticker" && (
-                <div className="text-6xl">{item.content}</div>
-              )}
-
-              {/* Resize handle */}
               {selected === item.id && (
                 <>
+                  {/* Resize handle */}
                   <button
                     onPointerDown={(e) => resizeItem(e, item)}
                     className="absolute -bottom-2 -right-2 h-4 w-4 rounded-full border-2 border-white bg-blue-500 cursor-se-resize"
                     aria-label="Resize element"
                   />
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      updateItem(item.id, {
-                        rotation: item.rotation + 15,
-                      });
-                    }}
+                  {/* Horizontal controls */}
+                  <div
+                    className="absolute -top-10 left-1/2 z-[150] flex -translate-x-1/2 items-center gap-2 whitespace-nowrap"
                     onPointerDown={(e) => e.stopPropagation()}
-                    className="absolute -top-8 left-1/2 -translate-x-1/2 rounded-full bg-blue-500 px-2 py-1 text-xs text-white"
                   >
-                    ↻ Rotate
-                  </button>
+                    {/* Rotate */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateItem(item.id, {
+                          rotation: item.rotation + 15,
+                        });
+                      }}
+                      className="rounded-full bg-blue-500 px-3 py-1 text-xs text-white"
+                    >
+                      ↻ Rotate
+                    </button>
+
+                    {item.type === "text" && (
+                      <>
+                        {/* Font selector */}
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowFontMenu((prev) => !prev);
+                            }}
+                            className="rounded-full bg-purple-500 px-3 py-1 text-xs text-white"
+                          >
+                            Aa Font ▾
+                          </button>
+
+                          {showFontMenu && (
+                            <div className="absolute left-1/2 top-full z-[200] mt-2 w-48 -translate-x-1/2 rounded-lg border border-zinc-200 bg-white p-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+                              {fonts.map((font) => (
+                                <button
+                                  key={font.value}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateItem(item.id, { font: font.value });
+                                    setShowFontMenu(false);
+                                  }}
+                                  className={`block w-full rounded-md px-3 py-2 text-left text-sm text-zinc-900 hover:bg-zinc-100 dark:text-white dark:hover:bg-zinc-800 ${
+                                    item.font === font.value
+                                      ? "bg-purple-100 dark:bg-purple-900"
+                                      : ""
+                                  }`}
+                                  style={{ fontFamily: font.value }}
+                                >
+                                  {font.name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Text color picker */}
+                        <label
+                          className="flex cursor-pointer items-center gap-1 rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-900 dark:bg-zinc-800 dark:text-white"
+                          onPointerDown={(e) => e.stopPropagation()}
+                        >
+                          <span>Color</span>
+                          <input
+                            type="color"
+                            value={item.color || "#18181b"}
+                            onChange={(e) =>
+                              updateItem(item.id, { color: e.target.value })
+                            }
+                            className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
+                            aria-label="Change text color"
+                          />
+                        </label>
+
+                        {/* Text size controls */}
+                        <div className="flex items-center gap-1 rounded-full bg-zinc-100 px-1 py-1 text-zinc-900 dark:bg-zinc-800 dark:text-white">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              changeFontSize(item, -2);
+                            }}
+                            disabled={(item.fontSize ?? 24) <= 10}
+                            className="flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold hover:bg-zinc-200 disabled:opacity-30 dark:hover:bg-zinc-700"
+                            aria-label="Decrease text size"
+                          >
+                            −
+                          </button>
+
+                          <span className="min-w-8 text-center text-xs tabular-nums">
+                            {item.fontSize ?? 24}
+                          </span>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              changeFontSize(item, 2);
+                            }}
+                            disabled={(item.fontSize ?? 24) >= 72}
+                            className="flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold hover:bg-zinc-200 disabled:opacity-30 dark:hover:bg-zinc-700"
+                            aria-label="Increase text size"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </>
               )}
             </div>
           ))}
         </div>
       </div>
-
-      {/* <p className="mx-auto mt-3 text-xs text-zinc-500">
-        Drag elements to move · Select to resize or rotate · Double-click text
-        to edit
-      </p> */}
     </div>
   );
 }
