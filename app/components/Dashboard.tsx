@@ -114,6 +114,8 @@ export default function Dashboard() {
   }
 
   function deleteSelected() {
+    if (selected === null) return;
+
     setItems((prev) => prev.filter((item) => item.id !== selected));
     setSelected(null);
     setIsEditing(null);
@@ -177,8 +179,8 @@ export default function Dashboard() {
 
     const onMove = (event: PointerEvent) => {
       updateItem(item.id, {
-        width: Math.max(60, startWidth + event.clientX - startX),
-        height: Math.max(45, startHeight + event.clientY - startY),
+        width: Math.max(40, startWidth + event.clientX - startX),
+        height: Math.max(40, startHeight + event.clientY - startY),
       });
     };
 
@@ -296,16 +298,24 @@ export default function Dashboard() {
                   src={item.content}
                   alt="Moodboard image"
                   draggable={false}
-                  className="h-full w-full object-cover pointer-events-none"
+                  className="pointer-events-none h-full w-full object-cover"
                 />
               )}
 
+              {/* Sticker */}
               {item.type === "sticker" && (
-                <div className="pointer-events-none text-6xl">
+                <div
+                  className="pointer-events-none flex h-full w-full items-center justify-center"
+                  style={{
+                    fontSize: `${Math.min(item.width, item.height) * 0.75}px`,
+                    lineHeight: 1,
+                  }}
+                >
                   {item.content}
                 </div>
               )}
 
+              {/* Text */}
               {item.type === "text" && (
                 <div
                   contentEditable={isEditing === item.id}
@@ -350,12 +360,13 @@ export default function Dashboard() {
                 </div>
               )}
 
+              {/* Selected item controls */}
               {selected === item.id && (
                 <>
                   {/* Resize handle */}
                   <button
                     onPointerDown={(e) => resizeItem(e, item)}
-                    className="absolute -bottom-2 -right-2 h-4 w-4 rounded-full border-2 border-white bg-blue-500 cursor-se-resize"
+                    className="absolute -bottom-2 -right-2 h-4 w-4 cursor-se-resize rounded-full border-2 border-white bg-blue-500"
                     aria-label="Resize element"
                   />
 
@@ -398,7 +409,9 @@ export default function Dashboard() {
                                   key={font.value}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    updateItem(item.id, { font: font.value });
+                                    updateItem(item.id, {
+                                      font: font.value,
+                                    });
                                     setShowFontMenu(false);
                                   }}
                                   className={`block w-full rounded-md px-3 py-2 text-left text-sm text-zinc-900 hover:bg-zinc-100 dark:text-white dark:hover:bg-zinc-800 ${
@@ -425,7 +438,9 @@ export default function Dashboard() {
                             type="color"
                             value={item.color || "#18181b"}
                             onChange={(e) =>
-                              updateItem(item.id, { color: e.target.value })
+                              updateItem(item.id, {
+                                color: e.target.value,
+                              })
                             }
                             className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0"
                             aria-label="Change text color"
