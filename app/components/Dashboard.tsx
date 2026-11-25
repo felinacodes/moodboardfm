@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import EmojiPicker, { Theme } from "emoji-picker-react";
 
 type BoardItem = {
   id: number;
@@ -85,6 +86,7 @@ export default function Dashboard() {
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [nextId, setNextId] = useState(5);
   const [showFontMenu, setShowFontMenu] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
 
   function addItem(type: BoardItem["type"], content = "") {
     const item: BoardItem = {
@@ -104,6 +106,7 @@ export default function Dashboard() {
     setSelected(item.id);
     setIsEditing(null);
     setShowFontMenu(false);
+    setShowStickerPicker(false);
     setNextId((prev) => prev + 1);
   }
 
@@ -120,6 +123,7 @@ export default function Dashboard() {
     setSelected(null);
     setIsEditing(null);
     setShowFontMenu(false);
+    setShowStickerPicker(false);
   }
 
   function changeFontSize(item: BoardItem, amount: number) {
@@ -143,6 +147,7 @@ export default function Dashboard() {
     e.stopPropagation();
 
     setSelected(item.id);
+    setShowStickerPicker(false);
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -224,19 +229,34 @@ export default function Dashboard() {
           + Image
         </button>
 
-        <button
-          onClick={() => addItem("sticker", "💗")}
-          className="rounded-lg bg-zinc-100 px-4 py-2 text-sm hover:bg-zinc-200 dark:bg-zinc-800"
-        >
-          + Sticker
-        </button>
+        {/* Sticker picker */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowStickerPicker((prev) => !prev);
+              setShowFontMenu(false);
+            }}
+            className="rounded-lg bg-purple-100 px-4 py-2 text-sm text-purple-700 hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-200 dark:hover:bg-purple-800"
+          >
+            + Sticker
+          </button>
 
-        <button
-          onClick={() => addItem("sticker", "🌧")}
-          className="rounded-lg bg-zinc-100 px-4 py-2 text-sm hover:bg-zinc-200 dark:bg-zinc-800"
-        >
-          + Rain
-        </button>
+          {showStickerPicker && (
+            <div className="absolute right-0 top-full z-[300] mt-2">
+              <EmojiPicker
+                onEmojiClick={(emojiData) => {
+                  addItem("sticker", emojiData.emoji);
+                }}
+                theme={Theme.AUTO}
+                width={350}
+                height={450}
+                searchPlaceholder="Search emojis..."
+                lazyLoadEmojis={true}
+                skinTonesDisabled={true}
+              />
+            </div>
+          )}
+        </div>
 
         <button
           onClick={deleteSelected}
@@ -260,6 +280,7 @@ export default function Dashboard() {
             setSelected(null);
             setIsEditing(null);
             setShowFontMenu(false);
+            setShowStickerPicker(false);
           }
         }}
       >
@@ -270,6 +291,7 @@ export default function Dashboard() {
               setSelected(null);
               setIsEditing(null);
               setShowFontMenu(false);
+              setShowStickerPicker(false);
             }
           }}
         >
@@ -293,6 +315,7 @@ export default function Dashboard() {
                 touchAction: "none",
               }}
             >
+              {/* Image */}
               {item.type === "image" && (
                 <img
                   src={item.content}
