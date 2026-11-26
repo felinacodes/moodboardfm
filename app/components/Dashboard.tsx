@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 
 type BoardItem = {
@@ -88,6 +88,88 @@ export default function Dashboard() {
   const [showFontMenu, setShowFontMenu] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
 
+  const itemsRef = useRef(items);
+  const historyRef = useRef<BoardItem[][]>([]);
+
+  function deleteSelected() {
+    if (selected === null) return;
+
+    saveHistory();
+
+    setItems((prev) => {
+      const updated = prev.filter((item) => item.id !== selected);
+      itemsRef.current = updated;
+      return updated;
+    });
+
+    setSelected(null);
+    setIsEditing(null);
+    setShowFontMenu(false);
+    setShowStickerPicker(false);
+  }
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+
+      if (
+        target.isContentEditable ||
+        ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
+      ) {
+        return;
+      }
+
+      // Undo: Ctrl + Z
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+
+        const previous = historyRef.current.pop();
+
+        if (!previous) return;
+
+        itemsRef.current = previous;
+        setItems(previous);
+
+        setSelected((current) =>
+          previous.some((item) => item.id === current) ? current : null,
+        );
+
+        setIsEditing(null);
+        setShowFontMenu(false);
+        setShowStickerPicker(false);
+
+        return;
+      }
+
+      // Delete selected item
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (selected !== null && isEditing === null) {
+          e.preventDefault();
+          deleteSelected();
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selected, isEditing, deleteSelected]);
+
+  function saveHistory() {
+    historyRef.current.push(itemsRef.current);
+
+    //last 100 actions
+    if (historyRef.current.length > 100) {
+      historyRef.current.shift();
+    }
+  }
+
   function addItem(type: BoardItem["type"], content = "") {
     const item: BoardItem = {
       id: nextId,
@@ -102,7 +184,14 @@ export default function Dashboard() {
       fontSize: 24,
     };
 
-    setItems((prev) => [...prev, item]);
+    saveHistory();
+
+    setItems((prev) => {
+      const updated = [...prev, item];
+      itemsRef.current = updated;
+      return updated;
+    });
+
     setSelected(item.id);
     setIsEditing(null);
     setShowFontMenu(false);
@@ -110,29 +199,20 @@ export default function Dashboard() {
     setNextId((prev) => prev + 1);
   }
 
-  function updateItem(id: number, updates: Partial<BoardItem>) {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item)),
-    );
-  }
+  function updateItem(
+    id: number,
+    updates: Partial<BoardItem>,
+    recordHistory = true,
+  ) {
+    if (recordHistory) saveHistory();
 
-  function deleteSelected() {
-    if (selected === null) return;
+    setItems((prev) => {
+      const updated = prev.map((item) =>
+        item.id === id ? { ...item, ...updates } : item,
+      );
 
-    setItems((prev) => prev.filter((item) => item.id !== selected));
-    setSelected(null);
-    setIsEditing(null);
-    setShowFontMenu(false);
-    setShowStickerPicker(false);
-  }
-
-  function changeFontSize(item: BoardItem, amount: number) {
-    const currentSize = item.fontSize ?? 24;
-    const newSize = Math.min(72, Math.max(10, currentSize + amount));
-
-    updateItem(item.id, {
-      fontSize: newSize,
-      height: Math.max(65, item.height * (newSize / currentSize)),
+      itemsRef.current = updated;
+      return updated;
     });
   }
 
@@ -149,16 +229,21 @@ export default function Dashboard() {
     setSelected(item.id);
     setShowStickerPicker(false);
 
+    saveHistory();
     const startX = e.clientX;
     const startY = e.clientY;
     const originalX = item.x;
     const originalY = item.y;
 
     const onMove = (event: PointerEvent) => {
-      updateItem(item.id, {
-        x: originalX + event.clientX - startX,
-        y: originalY + event.clientY - startY,
-      });
+      updateItem(
+        item.id,
+        {
+          x: originalX + event.clientX - startX,
+          y: originalY + event.clientY - startY,
+        },
+        false,
+      );
     };
 
     const onUp = () => {
@@ -177,16 +262,21 @@ export default function Dashboard() {
     e.preventDefault();
     e.stopPropagation();
 
+    saveHistory();
     const startX = e.clientX;
     const startY = e.clientY;
     const startWidth = item.width;
     const startHeight = item.height;
 
     const onMove = (event: PointerEvent) => {
-      updateItem(item.id, {
-        width: Math.max(40, startWidth + event.clientX - startX),
-        height: Math.max(40, startHeight + event.clientY - startY),
-      });
+      updateItem(
+        item.id,
+        {
+          width: Math.max(40, startWidth + event.clientX - startX),
+          height: Math.max(40, startHeight + event.clientY - startY),
+        },
+        false,
+      );
     };
 
     const onUp = () => {
@@ -198,12 +288,30 @@ export default function Dashboard() {
     window.addEventListener("pointerup", onUp);
   }
 
+  function changeFontSize(item: BoardItem, amount: number) {
+    const currentSize = item.fontSize ?? 24;
+    const newSize = Math.min(72, Math.max(10, currentSize + amount));
+
+    if (newSize === currentSize) return;
+
+    const scale = newSize / currentSize;
+
+    updateItem(item.id, {
+      fontSize: newSize,
+      height: Math.max(65, item.height * scale),
+    });
+  }
+
   function updateTextSize(id: number, element: HTMLDivElement) {
     const height = element.scrollHeight;
 
-    updateItem(id, {
-      height: Math.max(65, height),
-    });
+    updateItem(
+      id,
+      {
+        height: Math.max(65, height),
+      },
+      false,
+    );
   }
 
   return (
@@ -398,18 +506,37 @@ export default function Dashboard() {
                     className="absolute -top-10 left-1/2 z-[150] flex -translate-x-1/2 items-center gap-2 whitespace-nowrap"
                     onPointerDown={(e) => e.stopPropagation()}
                   >
-                    {/* Rotate */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateItem(item.id, {
-                          rotation: item.rotation + 15,
-                        });
-                      }}
-                      className="rounded-full bg-blue-500 px-3 py-1 text-xs text-white"
-                    >
-                      ↻ Rotate
-                    </button>
+                    {/* Rotation controls */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateItem(item.id, {
+                            rotation: item.rotation + 15,
+                          });
+                        }}
+                        className="rounded-full bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
+                        aria-label="Rotate clockwise"
+                        title="Rotate 15° clockwise"
+                      >
+                        ↻ Rotate
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateItem(item.id, {
+                            rotation: 0,
+                          });
+                        }}
+                        disabled={item.rotation === 0}
+                        className="rounded-full bg-zinc-500 px-3 py-1 text-xs text-white hover:bg-zinc-600 disabled:opacity-30"
+                        aria-label="Reset rotation"
+                        title="Reset rotation"
+                      >
+                        ↺ Reset
+                      </button>
+                    </div>
 
                     {item.type === "text" && (
                       <>
