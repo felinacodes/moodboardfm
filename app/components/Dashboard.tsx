@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import EmojiPicker, { Theme } from "emoji-picker-react";
+import Image from "next/image";
 
 type BoardItem = {
   id: number;
@@ -91,22 +92,21 @@ export default function Dashboard() {
   const itemsRef = useRef(items);
   const historyRef = useRef<BoardItem[][]>([]);
 
-  function deleteSelected() {
+  const deleteSelected = useCallback(() => {
     if (selected === null) return;
 
     saveHistory();
 
-    setItems((prev) => {
-      const updated = prev.filter((item) => item.id !== selected);
-      itemsRef.current = updated;
-      return updated;
-    });
+    const updated = itemsRef.current.filter((item) => item.id !== selected);
+
+    itemsRef.current = updated;
+    setItems(updated);
 
     setSelected(null);
     setIsEditing(null);
     setShowFontMenu(false);
     setShowStickerPicker(false);
-  }
+  }, [selected]);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -423,13 +423,15 @@ export default function Dashboard() {
                 touchAction: "none",
               }}
             >
-              {/* Image */}
               {item.type === "image" && (
-                <img
+                <Image
                   src={item.content}
                   alt="Moodboard image"
+                  fill
+                  unoptimized
                   draggable={false}
-                  className="pointer-events-none h-full w-full object-cover"
+                  sizes="(max-width: 768px) 100vw, 190px"
+                  className="pointer-events-none object-cover"
                 />
               )}
 
