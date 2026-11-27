@@ -34,19 +34,6 @@ const fonts = [
 const initialItems: BoardItem[] = [
   {
     id: 1,
-    type: "text",
-    content: "Ashtray girl",
-    x: 100,
-    y: 90,
-    width: 220,
-    height: 65,
-    rotation: -5,
-    color: "#2346d1",
-    font: "var(--font-permanent-marker)",
-    fontSize: 24,
-  },
-  {
-    id: 2,
     type: "image",
     content:
       "https://thumbs.dreamstime.com/b/cozy-rainy-day-retreat-book-candle-warm-drink-indoor-scene-tea-rain-streaked-window-comfort-440575440.jpg",
@@ -57,7 +44,7 @@ const initialItems: BoardItem[] = [
     rotation: 3,
   },
   {
-    id: 3,
+    id: 2,
     type: "sticker",
     content: "💗",
     x: 220,
@@ -67,7 +54,7 @@ const initialItems: BoardItem[] = [
     rotation: 12,
   },
   {
-    id: 4,
+    id: 3,
     type: "text",
     content: "I think there's a flaw in my code",
     x: 450,
@@ -77,6 +64,19 @@ const initialItems: BoardItem[] = [
     rotation: -3,
     color: "#e3a5e1",
     font: "var(--font-pacifico)",
+    fontSize: 24,
+  },
+  {
+    id: 4,
+    type: "text",
+    content: "Ashtray girlsssssssssssssssssssssssssssssss",
+    x: 100,
+    y: 90,
+    width: 220,
+    height: 65,
+    rotation: -5,
+    color: "#2346d1",
+    font: "var(--font-permanent-marker)",
     fontSize: 24,
   },
 ];
@@ -350,7 +350,7 @@ export default function Dashboard() {
           </button>
 
           {showStickerPicker && (
-            <div className="absolute right-0 top-full z-[300] mt-2">
+            <div className="absolute right-0 top-full z-[300] mt-2  z-[3000]">
               <EmojiPicker
                 onEmojiClick={(emojiData) => {
                   addItem("sticker", emojiData.emoji);
@@ -418,7 +418,12 @@ export default function Dashboard() {
                 width: item.width,
                 height: item.height,
                 transform: `rotate(${item.rotation}deg)`,
-                zIndex: selected === item.id ? 100 : item.id,
+                zIndex:
+                  (item.type === "image"
+                    ? 0
+                    : item.type === "text"
+                      ? 1000
+                      : 2000) + item.id,
                 cursor: isEditing === item.id ? "text" : "grab",
                 touchAction: "none",
               }}
@@ -521,7 +526,7 @@ export default function Dashboard() {
                         aria-label="Rotate clockwise"
                         title="Rotate 15° clockwise"
                       >
-                        ↻ Rotate
+                        ↻
                       </button>
 
                       <button
@@ -536,7 +541,7 @@ export default function Dashboard() {
                         aria-label="Reset rotation"
                         title="Reset rotation"
                       >
-                        ↺ Reset
+                        ↺
                       </button>
                     </div>
 
@@ -551,7 +556,7 @@ export default function Dashboard() {
                             }}
                             className="rounded-full bg-purple-500 px-3 py-1 text-xs text-white"
                           >
-                            Aa Font ▾
+                            Aa▾
                           </button>
 
                           {showFontMenu && (
@@ -585,7 +590,6 @@ export default function Dashboard() {
                           className="flex cursor-pointer items-center gap-1 rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-900 dark:bg-zinc-800 dark:text-white"
                           onPointerDown={(e) => e.stopPropagation()}
                         >
-                          <span>Color</span>
                           <input
                             type="color"
                             value={item.color || "#18181b"}
