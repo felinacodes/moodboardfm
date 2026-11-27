@@ -69,7 +69,7 @@ const initialItems: BoardItem[] = [
   {
     id: 4,
     type: "text",
-    content: "Ashtray girlsssssssssssssssssssssssssssssss",
+    content: "Ashtray girl",
     x: 100,
     y: 90,
     width: 220,
@@ -318,11 +318,11 @@ export default function Dashboard() {
     <div className="flex min-h-screen flex-col bg-zinc-100 p-4 text-zinc-900 dark:bg-black dark:text-white">
       {/* Toolbar */}
       <div className="mx-auto mb-4 flex w-full max-w-6xl flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <span className="mr-auto font-semibold">Moodboard.fm</span>
+        <span className="mr-auto font-semibold text-lg">Moodboard.fm</span>
 
         <button
           onClick={() => addItem("text")}
-          className="rounded-lg bg-zinc-100 px-4 py-2 text-sm hover:bg-zinc-200 dark:bg-zinc-800"
+          className="rounded-lg bg-zinc-100 px-4 py-2 text-sm hover:bg-zinc-200 dark:bg-zinc-800 cursor-pointer"
         >
           + Text
         </button>
@@ -332,7 +332,7 @@ export default function Dashboard() {
             const url = window.prompt("Enter image URL");
             if (url) addItem("image", url);
           }}
-          className="rounded-lg bg-zinc-100 px-4 py-2 text-sm hover:bg-zinc-200 dark:bg-zinc-800"
+          className="rounded-lg bg-zinc-100 px-4 py-2 text-sm hover:bg-zinc-200 dark:bg-zinc-800 cursor-pointer"
         >
           + Image
         </button>
@@ -344,7 +344,7 @@ export default function Dashboard() {
               setShowStickerPicker((prev) => !prev);
               setShowFontMenu(false);
             }}
-            className="rounded-lg bg-purple-100 px-4 py-2 text-sm text-purple-700 hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-200 dark:hover:bg-purple-800"
+            className="rounded-lg bg-zinc-100 px-4 py-2 text-sm hover:bg-zinc-200 dark:bg-zinc-800 cursor-pointer"
           >
             + Sticker
           </button>
@@ -369,7 +369,7 @@ export default function Dashboard() {
         <button
           onClick={deleteSelected}
           disabled={selected === null}
-          className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-600 hover:bg-red-200 disabled:opacity-30"
+          className="rounded-lg bg-red-100 px-4 py-2 text-sm text-red-600 hover:bg-red-200 disabled:opacity-30 cursor-pointer"
         >
           Delete
         </button>
